@@ -2,20 +2,13 @@ import time
 
 DECIMALS = 10 ** 9
 
-pre_tokens = [{'accountIndex': 4, 'mint': '4WqzbJkcrU3vnoLdAwv8XVhZPeVACzqbJiUepwYqWLmW',
-               'uiTokenAmount': {'amount': '1', 'decimals': 0, 'uiAmount': 1.0, 'uiAmountString': '1'}}]
 
-post_tokens = [{'accountIndex': 1, 'mint': '4WqzbJkcrU3vnoLdAwv8XVhZPeVACzqbJiUepwYqWLmW',
-                'uiTokenAmount': {'amount': '1', 'decimals': 0, 'uiAmount': 1.0, 'uiAmountString': '1'}},
-               {'accountIndex': 4, 'mint': '4WqzbJkcrU3vnoLdAwv8XVhZPeVACzqbJiUepwYqWLmW',
-                'uiTokenAmount': {'amount': '0', 'decimals': 0, 'uiAmount': None, 'uiAmountString': '0'}}]
-
-
-def contains(index: int, pre: list) -> bool:
+def get_token_change(index: int, post_balance, pre: list):
     for i in pre:
         if i['accountIndex'] == index:
-            return True
-    return False
+            pre_balance = int(i['uiTokenAmount']['amount']) / 10 ** i['uiTokenAmount']['decimals']
+            return post_balance - pre_balance
+    return post_balance
 
 
 def to_sol(lamports: int):
@@ -35,16 +28,26 @@ def get_token_balances(accounts: list, pre: list, post: list):
     if not pre and not post:
         return
     result = []
-    if not pre or len(post) > len(pre):
+    if not pre:
         for i in range(len(post)):
-            if not contains(post[i]['accountIndex'], pre):
-                change = post[i]['uiTokenAmount']['uiAmount']
+            amount = post[i]['uiTokenAmount']['uiAmount']
+            result.append(
+                (accounts[post[i]['accountIndex']], post[i]['mint'], amount, amount))
+        return result
+
+    if len(post) > len(pre):
+        for i in range(len(post)):
+            post_balance = int(post[i]['uiTokenAmount']['amount']) / 10 ** post[i]['uiTokenAmount']['decimals']
+            change = get_token_change(post[i]['accountIndex'], post_balance, pre)
+            if change != 0:
                 result.append(
-                    (accounts[post[i]['accountIndex']], post[i]['mint'], post[i]['uiTokenAmount']['uiAmount'], change))
+                    (accounts[post[i]['accountIndex']], post[i]['mint'], post_balance, change))
         return result
 
     for i in range(len(post)):
-        change = post[i]['uiTokenAmount']['uiAmount'] - pre[i]['uiTokenAmount']['uiAmount']
+        post_balance = int(post[i]['uiTokenAmount']['amount']) / 10 ** post[i]['uiTokenAmount']['decimals']
+        pre_balance = int(pre[i]['uiTokenAmount']['amount']) / 10 ** pre[i]['uiTokenAmount']['decimals']
+        change = post_balance - pre_balance
         if change != 0:
             result.append(
                 (accounts[post[i]['accountIndex']], post[i]['mint'], post[i]['uiTokenAmount']['uiAmount'], change))

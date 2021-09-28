@@ -181,7 +181,6 @@ async def track_wallets():
                 if wallet[2] < slot:
                     tx_sig = _get_tx_sig(tx_sig_json)
                     tx_info = await get_tx_info(tx_sig, client)
-                    print('tx_info', tx_info)
                     db.update_slot(slot, wallet[0], wallet[1])
                     logging.info(f'Slot updated to {slot}')
                     notification = form_message(wallet, tx_info["result"], tx_sig)
@@ -190,7 +189,7 @@ async def track_wallets():
             await client.close()
             await asyncio.sleep(5)
         except Exception as e:
-            logging.error(f'Exception {e}')
+            logging.exception(f'Exception', exc_info=e)
             await client.close()
             await asyncio.sleep(5)
 
